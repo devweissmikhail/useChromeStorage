@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { usePromise } from './usePromise';
 
 
-export const useChromeStorage = (key, initialValue, validator, sync) => {
+export const useChromeStorage = (key, initialValue, { sync = false, validator = () => true } = {}) => {
 
   const [value, setValue] = useState(initialValue);
   const [initPromise, initResolve] = usePromise();
@@ -16,14 +16,10 @@ export const useChromeStorage = (key, initialValue, validator, sync) => {
         .get(key)
         .then((result) => {
 
-          try {
-
+          if (result[key] !== undefined) {
             if (validator(result[key])) {
               setValue(result[key]);
             }
-
-          } catch (error) {
-            console.warn('useChromeStorage: Validator error');
           }
 
         })
@@ -51,14 +47,14 @@ export const useChromeStorage = (key, initialValue, validator, sync) => {
           setValue(val);
 
           try {
-            
+
             chrome.storage[sync === true ? 'sync' : 'local']
               .set({ [key]: val })
               .then(() => resolve())
-              .catch(() => {
+              .catch((error) => {
 
                 console.warn('useChromeStorage: Set error - ' + key);
-                reject('Most likely the quota is full');
+                reject(error);
 
               });
 
@@ -75,6 +71,7 @@ export const useChromeStorage = (key, initialValue, validator, sync) => {
     });
 
   }
+
 
   return [value, set];
 
