@@ -6,8 +6,8 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
   const [init, setInit] = useState(false);
   const [value, setValue] = useState({});
 
-  const notInitSetRequest = useRef(false);
   const isFirstRender = useRef(true);
+  const onlySetRequests = useRef(false);
 
 
   useEffect(() => {
@@ -56,10 +56,10 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
   }, [value]);
 
 
-  const setValueManager = (val, setRequest = false) => {
+  const setValueManager = (val, isSetRequest = false) => {
 
-    if (notInitSetRequest.current) {
-      if (!setRequest) {
+    if (onlySetRequests.current) {
+      if (!isSetRequest) {
         return;
       }
     }
@@ -69,7 +69,7 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
   }
 
   const getValue = () => {
-    
+
     if (init) {
       return value;
     }
@@ -79,13 +79,13 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
 
   const set = (val) => {
 
-    if (!init) {
-      notInitSetRequest.current = true;
-    }
-
     return new Promise((resolve, reject) => {
 
       if (validator(val)) {
+
+        if (!onlySetRequests.current) {
+          onlySetRequests.current = true;
+        }
 
         setValueManager(val, true);
 
