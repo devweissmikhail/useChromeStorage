@@ -26,7 +26,7 @@ export default const app = () => {
       return;
     }
 
-    console.log(init.state);
+    console.log('Initialized');
     console.log(value);
 
   }, [value]);
