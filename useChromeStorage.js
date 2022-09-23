@@ -58,10 +58,12 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
 
   const setValueManager = (val, isSetRequest = false) => {
 
-    if (onlySetRequests.current) {
-      if (!isSetRequest) {
-        return;
-      }
+    if (!onlySetRequests.current && isSetRequest) {
+      onlySetRequests.current = true;
+    }
+
+    if (onlySetRequests.current && !isSetRequest) {
+      return;
     }
 
     setValue(val);
@@ -82,10 +84,6 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
     return new Promise((resolve, reject) => {
 
       if (validator(val)) {
-
-        if (!onlySetRequests.current) {
-          onlySetRequests.current = true;
-        }
 
         setValueManager(val, true);
 
