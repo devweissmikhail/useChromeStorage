@@ -14,8 +14,10 @@ export default const app = () => {
   const [value, setValue, init] = useChromeStorage('testKey', { initValue: 'testValue', sync: false, validator: () => true });
 
   useEffect(() => {
+
     init.promise.then(() => console.log('init promise'));
     setValue('newTestValue');
+
   }, []);
 
   useEffect(() => {
