@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { usePromise } from './usePromise';
 
 
 export const useChromeStorage = (key, { initValue, sync = false, validator = () => true } = {}) => {
@@ -7,9 +6,8 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
   const [init, setInit] = useState(false);
   const [value, setValue] = useState({});
 
+  const notInitSetRequest = useRef(false);
   const isFirstRender = useRef(true);
-
-  const [initPromise, initResolve] = usePromise();
 
 
   useEffect(() => {
@@ -21,24 +19,24 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
         .then((result) => {
 
           if (validator(result[key])) {
-            setValue(result[key]);
+            setValueManager(result[key]);
             return;
           }
 
-          setValue(initValue);
+          setValueManager(initValue);
 
         })
         .catch(() => {
 
-          setValue(initValue);
           console.warn('useChromeStorage: Get error');
+          setValueManager(initValue);
 
         });
 
     } catch (e) {
 
-      setValue(initValue);
       console.warn('useChromeStorage: API error');
+      setValueManager(initValue);
 
     }
 
@@ -53,11 +51,22 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
 
     if (!init) {
       setInit(true);
-      initResolve();
     }
 
   }, [value]);
 
+
+  const setValueManager = (val, setRequest = false) => {
+
+    if (notInitSetRequest.current) {
+      if (!setRequest) {
+        return;
+      }
+    }
+
+    setValue(val);
+
+  }
 
   const getValue = () => {
     
@@ -70,41 +79,41 @@ export const useChromeStorage = (key, { initValue, sync = false, validator = () 
 
   const set = (val) => {
 
+    if (!init) {
+      notInitSetRequest.current = true;
+    }
+
     return new Promise((resolve, reject) => {
 
-      initPromise.then(() => {
+      if (validator(val)) {
 
-        if (validator(val)) {
+        setValueManager(val, true);
 
-          setValue(val);
+        try {
 
-          try {
+          chrome.storage[sync ? 'sync' : 'local']
+            .set({ [key]: val })
+            .then(() => resolve())
+            .catch((e) => {
 
-            chrome.storage[sync ? 'sync' : 'local']
-              .set({ [key]: val })
-              .then(() => resolve())
-              .catch(() => {
+              console.warn('useChromeStorage: Set error');
+              reject(e);
 
-                reject('Set error');
-                console.warn('useChromeStorage: Set error');
+            });
 
-              });
-
-          } catch (e) {
-            reject('API error');
-          }
-
-        } else {
-          reject('Validator rejected this value');
+        } catch (e) {
+          reject('API error');
         }
 
-      });
+      } else {
+        reject('Validator rejected this value');
+      }
 
     });
 
   }
 
 
-  return [getValue(), set, { state: init, promise: initPromise }];
+  return [getValue(), set, init];
 
 }
