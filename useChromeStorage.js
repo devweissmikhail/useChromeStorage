@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { usePromise } from './usePromise';
 
 
-export const useChromeStorage = (key, initialValue, { sync = false, validator = () => true } = {}) => {
+export const useChromeStorage = (key, { initValue, sync = false, validator = () => true } = {}) => {
 
-  const [value, setValue] = useState(initialValue);
+  const [init, setInit] = useState(false);
+  const [value, setValue] = useState({});
+
+  const isFirstRender = useRef(true);
+
   const [initPromise, initResolve] = usePromise();
 
 
@@ -12,29 +16,57 @@ export const useChromeStorage = (key, initialValue, { sync = false, validator = 
 
     try {
 
-      chrome.storage[sync === true ? 'sync' : 'local']
+      chrome.storage[sync ? 'sync' : 'local']
         .get(key)
         .then((result) => {
 
-          if (result[key] !== undefined) {
-            if (validator(result[key])) {
-              setValue(result[key]);
-            }
+          if (validator(result[key])) {
+            setValue(result[key]);
+            return;
           }
 
+          setValue(initValue);
+
         })
-        .catch(() => console.warn('useChromeStorage: Get error - ' + key))
-        .finally(() => initResolve());
+        .catch(() => {
 
-    } catch (error) {
+          setValue(initValue);
+          console.warn('useChromeStorage: Get error');
 
-      console.warn('useChromeStorage: Chrome storage API error');
-      initResolve();
+        });
+
+    } catch (e) {
+
+      setValue(initValue);
+      console.warn('useChromeStorage: API error');
 
     }
 
   }, []);
 
+  useEffect(() => {
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (!init) {
+      setInit(true);
+      initResolve();
+    }
+
+  }, [value]);
+
+
+  const getValue = () => {
+    
+    if (init) {
+      return value;
+    }
+    return initValue;
+
+  }
 
   const set = (val) => {
 
@@ -48,18 +80,18 @@ export const useChromeStorage = (key, initialValue, { sync = false, validator = 
 
           try {
 
-            chrome.storage[sync === true ? 'sync' : 'local']
+            chrome.storage[sync ? 'sync' : 'local']
               .set({ [key]: val })
               .then(() => resolve())
-              .catch((error) => {
+              .catch(() => {
 
-                console.warn('useChromeStorage: Set error - ' + key);
-                reject(error);
+                reject('Set error');
+                console.warn('useChromeStorage: Set error');
 
               });
 
-          } catch (error) {
-            reject('Chrome storage API error');
+          } catch (e) {
+            reject('API error');
           }
 
         } else {
@@ -73,6 +105,6 @@ export const useChromeStorage = (key, initialValue, { sync = false, validator = 
   }
 
 
-  return [value, set];
+  return [getValue(), set, { state: init, promise: initPromise }];
 
 }
