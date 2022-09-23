@@ -11,25 +11,38 @@ import { useChromeStorage } from './useChromeStorage';
 
 export default const app = () => {
 
-  const [value, setValue, init] = useChromeStorage('testKey', { initValue: 'testValue', sync: false, validator: () => true });
+  const [value, setValue, init] = useChromeStorage('testKey', {
+    initValue: 'testValue',
+    sync: false,
+    validator: (val) => {
+      if (val === undefined) {
+        return false;
+      }
+      return true;
+    }
+  });
 
   useEffect(() => {
 
-    init.promise.then(() => console.log('init promise'));
-    setValue('newTestValue');
-
-  }, []);
-
-  useEffect(() => {
-
-    if (!init.state) {
-      return;
+    if (init) {
+      console.log('Initialized');
     }
 
-    console.log('Initialized');
     console.log(value);
 
   }, [value]);
 
+  useEffect(() => {
+
+    setValue('newTestValue');
+
+  }, []);
+
 }
+```
+
+### Default validator function
+
+```javascript
+const validator = () => true;
 ```
