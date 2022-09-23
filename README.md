@@ -11,17 +11,14 @@ import { useChromeStorage } from './useChromeStorage';
 
 export default const app = () => {
 
-	const [value, setValue, init] = useChromeStorage('testKey', { initValue: 'testValue', sync: false, validator: () => true });
+  const [value, setValue, init] = useChromeStorage('testKey', { initValue: 'testValue', sync: false, validator: () => true });
 
-	useEffect(() => {
-
+  useEffect(() => {
     init.promise.then(() => console.log('init promise'));
-  
     setValue('newTestValue');
+  }, []);
 
-	}, []);
-
-	useEffect(() => {
+  useEffect(() => {
 
     if (!init.state) {
       return;
@@ -30,8 +27,7 @@ export default const app = () => {
     console.log(init.state);
     console.log(value);
 
-	}, [value]);
+  }, [value]);
 
 }
-
 ```
